@@ -145,5 +145,5 @@ item_availability = job_get_item_details(item_urls)
 item_availability.to_csv('items_availability.csv',index=False)
 
 sched = BlockingScheduler()
-sched.add_job(job_to_schedule, 'cron', day_of_week='mon-sun', hour=12, minute =45, end_date = '2018-07-24' )
+sched.add_job(job_to_schedule, 'cron', day_of_week='mon-sun', hour=12, end_date = '2018-07-24' )
 sched.start()
