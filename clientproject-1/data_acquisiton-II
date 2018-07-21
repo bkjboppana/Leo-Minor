@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Jul 21 09:23:57 2018
+
+@author: dipankar
+
+This part contains the scheduler and will acquire data periodically. If the program or computer crashes you need to restart this program only 
+"""
+import numpy as np
+import pandas as pd
+from bs4 import BeautifulSoup
+import urllib.request as urllib
+from requests import get
+import matplotlib.pyplot as plt
+from dateutil import parser
+from apscheduler.schedulers.blocking import BlockingScheduler
+from datetime import datetime, date
+import os, glob
+
+def job_get_item_availability(url_list):
+    item_available = []
+    dateandtime = date.today()
+    for url in url_list:
+        response = get(url)
+        first_soup = BeautifulSoup(response.text, 'html.parser')# get the html soup
+        available_quantity = first_soup.find_all('span', id = "qtySubTxt")
+        try:
+            x = available_quantity[0].text
+            quantity = [int(s) for s in x.split() if s.isdigit()][0]
+            if quantity>0:
+                item_available.append(1)
+            else:
+                item_available.append(0)
+            #print('Available quantity is : {}'.format(quantity))
+        except:
+            item_available.append(0)
+    dict_availability = {str(dateandtime):item_available}
+    return pd.DataFrame(dict_availability)
+
+def job_to_schedule():
+    global item_urls
+    url_list = item_urls
+    seed_file_link = 'items_availability.csv'
+    df_init = pd.read_csv(seed_file_link)
+    df_availability = job_get_item_availability(url_list)
+    df_final = pd.concat([df_init, df_availability], axis=1)
+    df_final.to_csv('items_availability.csv', index = False)
+    print('Done at {}'.format(str(date.today())))
+    #return df_final
+    
+url_df = pd.read_csv('url_list.csv')
+#item_urls  = url_df['urls'].tolist()[:24]#Tanmaiyii use this
+item_urls  = url_df['urls'].tolist()[25:]#Prince use this
+sched = BlockingScheduler()
+sched.add_job(job_to_schedule, 'cron', day_of_week='mon-sun', hour=10, minute =26, end_date = '2018-07-24' )
+sched.start()
